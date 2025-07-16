@@ -1,0 +1,577 @@
+-- SERVICES
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "BehindGUI"
+gui.ResetOnSpawn = false
+gui.Parent = game.CoreGui
+
+-- MAIN FRAME
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 350, 0, 480) -- Increased height for dropdown + customize section
+frame.Position = UDim2.new(0.05, 0, 0.2, 0)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.Active = true
+frame.Draggable = true
+frame.Visible = true
+
+local frameStroke = Instance.new("UIStroke", frame)
+frameStroke.Thickness = 4
+frameStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+local frameGradient = Instance.new("UIGradient", frameStroke)
+frameGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+    ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 127, 0)),
+    ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 255, 0)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 0)),
+    ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 0, 255)),
+    ColorSequenceKeypoint.new(0.83, Color3.fromRGB(75, 0, 130)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(148, 0, 211))
+}
+
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(0, 8)
+
+TweenService:Create(frameGradient, TweenInfo.new(3, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1), {
+    Rotation = 360
+}):Play()
+
+-- TOGGLE GUI VISIBILITY BUTTON
+local guiToggleBtn = Instance.new("TextButton")
+guiToggleBtn.Size = UDim2.new(0, 100, 0, 30)
+guiToggleBtn.Position = UDim2.new(0, 10, 0, 10)
+guiToggleBtn.Text = "Hide GUI"
+guiToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+guiToggleBtn.TextColor3 = Color3.new(1, 1, 1)
+guiToggleBtn.Font = Enum.Font.GothamBold
+guiToggleBtn.TextSize = 16
+guiToggleBtn.TextScaled = true
+guiToggleBtn.TextTransparency = 0
+guiToggleBtn.TextStrokeTransparency = 1
+guiToggleBtn.Parent = gui
+
+local guiVisible = true
+
+guiToggleBtn.MouseButton1Click:Connect(function()
+    guiVisible = not guiVisible
+    frame.Visible = guiVisible
+    guiToggleBtn.Text = guiVisible and "Hide GUI" or "Show GUI"
+end)
+
+-- Rainbow Stroke
+local stroke = Instance.new("UIStroke", guiToggleBtn)
+stroke.Thickness = 2
+stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+-- Gradient for the stroke (ColorSequenceKeypoint.new(0.83, Color3.fromRGB(75, 0, 130)), -- ✅ correct)
+local gradient = Instance.new("UIGradient", stroke)
+gradient.Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+	ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 127, 0)),
+	ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 255, 0)),
+	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 0)),
+	ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 0, 255)),
+	ColorSequenceKeypoint.new(0.83, Color3.fromRGB(75, 0, 130)), -- ✅ fixed comma
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(148, 0, 211))
+})
+
+-- Animated rainbow text
+local textGradient = Instance.new("UIGradient", guiToggleBtn)
+textGradient.Color = gradient.Color
+textGradient.Rotation = 0
+
+RunService.RenderStepped:Connect(function()
+	textGradient.Rotation = (textGradient.Rotation + 1) % 360
+end)
+
+-- Animate rainbow border
+TweenService:Create(gradient, TweenInfo.new(5, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1), {
+	Rotation = 360
+}):Play()
+
+-- Dragging
+local dragging = false
+local dragInput, dragStart, startPos
+
+guiToggleBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = guiToggleBtn.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+guiToggleBtn.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input == dragInput then
+        local delta = input.Position - dragStart
+        guiToggleBtn.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- MINIMIZE BUTTON
+local minimizeBtn = Instance.new("TextButton", frame)
+minimizeBtn.Size = UDim2.new(0, 25, 0, 25)
+minimizeBtn.Position = UDim2.new(1, -30, 0, 5)
+minimizeBtn.Text = "-"
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.TextSize = 18
+minimizeBtn.ZIndex = 2
+
+local minimized = false
+local originalSize = frame.Size
+local minimizedSize = UDim2.new(originalSize.X.Scale, originalSize.X.Offset, 0, 40)
+
+minimizeBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+
+    if minimized then  
+        frame:TweenSize(minimizedSize, Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.25, true)  
+        minimizeBtn.Text = "+"  
+    else  
+        frame:TweenSize(originalSize, Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.25, true)  
+        minimizeBtn.Text = "-"  
+    end  
+
+    for _, child in frame:GetChildren() do  
+        if child:IsA("GuiObject") and child ~= minimizeBtn then  
+            child.Visible = not minimized  
+        end  
+    end
+end)
+
+-- TOGGLE BUTTON
+local toggle = Instance.new("TextButton", frame)
+toggle.Size = UDim2.new(1, -20, 0, 40)
+toggle.Position = UDim2.new(0, 10, 0, 15)
+toggle.Text = "Toggle (OFF)"
+toggle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+toggle.TextColor3 = Color3.new(1, 1, 1)
+toggle.Font = Enum.Font.GothamBold
+toggle.TextSize = 16
+
+-- TARGET LABEL
+local targetLabel = Instance.new("TextLabel", frame)
+targetLabel.Size = UDim2.new(1, -20, 0, 30)
+targetLabel.Position = UDim2.new(0, 10, 0, 70)
+targetLabel.Text = "Target: None"
+targetLabel.BackgroundTransparency = 1
+targetLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+targetLabel.Font = Enum.Font.Gotham
+targetLabel.TextSize = 16
+targetLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- DISTANCE BOX
+local distanceBox = Instance.new("TextBox", frame)
+distanceBox.Size = UDim2.new(1, -20, 0, 35)
+distanceBox.Position = UDim2.new(0, 10, 0, 110)
+distanceBox.PlaceholderText = "Enter 1 to 10 studs"
+distanceBox.Text = "5"
+distanceBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+distanceBox.TextColor3 = Color3.new(1, 1, 1)
+distanceBox.Font = Enum.Font.Gotham
+distanceBox.TextSize = 16
+
+-- DISTANCE TITLE LABEL
+local distanceTitle = Instance.new("TextLabel", frame)
+distanceTitle.Size = UDim2.new(1, -20, 0, 20)
+distanceTitle.Position = UDim2.new(0, 10, 0, 85)
+distanceTitle.BackgroundTransparency = 1
+distanceTitle.Text = "Distance of your position"
+distanceTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+distanceTitle.Font = Enum.Font.GothamBold
+distanceTitle.TextSize = 14
+distanceTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+-- SELECT POSITION DROPDOWN BUTTON
+local function track()
+	if tracking then tracking:Disconnect() end
+	tracking = RunService.RenderStepped:Connect(function()
+		if toggled and selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+			local hrp = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+			local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+			if hrp and myRoot then
+				local offset = Vector3.new()
+
+				local selectedMode = positionModes[currentPositionIndex]
+
+				if selectedMode == "Behind" then
+					offset = -hrp.CFrame.LookVector * distance
+				elseif selectedMode == "Bottom" then
+					offset = Vector3.new(0, -distance, 0)
+				elseif selectedMode == "Top" then
+					offset = Vector3.new(0, distance, 0)
+				elseif selectedMode == "Left" then
+					offset = -hrp.CFrame.RightVector * distance
+				elseif selectedMode == "Right" then
+					offset = hrp.CFrame.RightVector * distance
+				elseif selectedMode == "Infront Dangerous" then
+					offset = hrp.CFrame.LookVector * distance -- 🟢 New logic
+				end
+
+				myRoot.CFrame = CFrame.new(hrp.Position + offset, hrp.Position)
+			end
+		end
+	end)
+end
+
+-- CUSTOMIZE THE DEATH AND RESPAWN DROPDOWN (NEW FEATURE)
+
+-- Settings variables
+local autoDeathsDisableInSkill = true
+local autoOnWhenEnemyRespawn = true
+
+local customizeBtn = Instance.new("TextButton", frame)
+customizeBtn.Size = UDim2.new(1, -20, 0, 35)
+customizeBtn.Position = UDim2.new(0, 10, 0, 195) -- Just below position dropdown (adjust if needed)
+customizeBtn.Text = "Customize the death and respawn ▼"
+customizeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+customizeBtn.TextColor3 = Color3.new(1, 1, 1)
+customizeBtn.Font = Enum.Font.GothamBold
+customizeBtn.TextSize = 14
+customizeBtn.ZIndex = 5
+customizeBtn.AutoButtonColor = false
+
+local arrowLabel = Instance.new("TextLabel", customizeBtn)
+arrowLabel.Size = UDim2.new(0, 20, 1, 0)
+arrowLabel.Position = UDim2.new(1, -20, 0, 0)
+arrowLabel.BackgroundTransparency = 1
+arrowLabel.Text = "▼"
+arrowLabel.TextColor3 = Color3.new(1, 1, 1)
+arrowLabel.Font = Enum.Font.GothamBold
+arrowLabel.TextSize = 16
+arrowLabel.TextXAlignment = Enum.TextXAlignment.Center
+arrowLabel.TextYAlignment = Enum.TextYAlignment.Center
+
+local customizeDropdown = Instance.new("Frame", frame)
+customizeDropdown.Size = UDim2.new(1, -20, 0, 0)
+customizeDropdown.Position = UDim2.new(0, 10, 0, 230)
+customizeDropdown.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+customizeDropdown.ClipsDescendants = true
+customizeDropdown.ZIndex = 6
+customizeDropdown.Visible = true
+
+local customizeLayout = Instance.new("UIListLayout", customizeDropdown)
+customizeLayout.Padding = UDim.new(0, 6)
+
+local function createToggleButton(text, initialState)
+    local btn = Instance.new("TextButton", customizeDropdown)
+    btn.Size = UDim2.new(1, 0, 0, 30)
+    btn.BackgroundColor3 = initialState and Color3.new(1, 1, 1) or Color3.fromRGB(80, 80, 80)
+    btn.TextColor3 = initialState and Color3.fromRGB(0, 0, 0) or Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.Text = text
+    btn.ZIndex = 7
+    btn.AutoButtonColor = false
+    return btn
+end
+
+local autoDeathsDisableBtn = createToggleButton("Auto off if enemy dead", autoDeathsDisableInSkill)
+local autoRespawnBtn = createToggleButton("Auto on when enemy respawn", autoOnWhenEnemyRespawn)
+
+local dropdownHeight = 2 * 30 + 6 -- two buttons plus padding
+customizeDropdown.Size = UDim2.new(1, -20, 0, 0)
+customizeDropdown.BackgroundTransparency = 1
+
+local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local customizeOpen = false
+
+local function updateToggleVisual(btn, state)
+    if state then
+        btn.BackgroundColor3 = Color3.new(1, 1, 1)
+        btn.TextColor3 = Color3.fromRGB(0, 0, 0)
+    else
+        btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        btn.TextColor3 = Color3.new(1, 1, 1)
+    end
+end
+
+customizeBtn.MouseButton1Click:Connect(function()
+    customizeOpen = not customizeOpen
+    if customizeOpen then
+        TweenService:Create(customizeDropdown, tweenInfo, {
+            Size = UDim2.new(1, -20, 0, dropdownHeight),
+            BackgroundTransparency = 0
+        }):Play()
+        TweenService:Create(arrowLabel, tweenInfo, {
+            Rotation = 180
+        }):Play()
+    else
+        TweenService:Create(customizeDropdown, tweenInfo, {
+            Size = UDim2.new(1, -20, 0, 0),
+            BackgroundTransparency = 1
+        }):Play()
+        TweenService:Create(arrowLabel, tweenInfo, {
+            Rotation = 0
+        }):Play()
+    end
+end)
+
+autoDeathsDisableBtn.MouseButton1Click:Connect(function()
+    autoDeathsDisableInSkill = not autoDeathsDisableInSkill
+    updateToggleVisual(autoDeathsDisableBtn, autoDeathsDisableInSkill)
+end)
+
+autoRespawnBtn.MouseButton1Click:Connect(function()
+    autoOnWhenEnemyRespawn = not autoOnWhenEnemyRespawn
+    updateToggleVisual(autoRespawnBtn, autoOnWhenEnemyRespawn)
+end)
+
+updateToggleVisual(autoDeathsDisableBtn, autoDeathsDisableInSkill)
+updateToggleVisual(autoRespawnBtn, autoOnWhenEnemyRespawn)
+
+-- SCROLLING PLAYER LIST
+local playerScroll = Instance.new("ScrollingFrame", frame)
+playerScroll.Size = UDim2.new(1, -20, 0, 180)
+playerScroll.Position = UDim2.new(0, 10, 0, 270)
+playerScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+playerScroll.ScrollBarThickness = 6
+playerScroll.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+playerScroll.BorderSizePixel = 0
+playerScroll.ScrollingDirection = Enum.ScrollingDirection.Y
+playerScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+
+local layout = Instance.new("UIListLayout", playerScroll)
+layout.Padding = UDim.new(0, 6)
+
+-- VARIABLES
+local toggled = false
+local selectedPlayer = nil
+local tracking = nil
+local reconnect = nil
+local distance = 5
+local deathConnection
+
+-- FUNCTION: TRACK (Follow selected player at distance and position)
+function track()
+    if tracking then tracking:Disconnect() end
+    tracking = RunService.RenderStepped:Connect(function()
+        if toggled and selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = selectedPlayer.Character.HumanoidRootPart
+            local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp and myRoot then
+                local offset
+                local dist = distance or 5
+                local lookVector = hrp.CFrame.LookVector
+                local rightVector = hrp.CFrame.RightVector
+                local upVector = hrp.CFrame.UpVector
+
+                local mode = positionModes[currentPositionIndex]
+
+                if mode == "Behind" then
+                    offset = -lookVector * dist
+                elseif mode == "Bottom" then
+                    offset = -upVector * dist
+                elseif mode == "Top" then
+                    offset = upVector * dist
+                elseif mode == "Left" then
+                    offset = -rightVector * dist
+                elseif mode == "Right" then
+                    offset = rightVector * dist
+                else
+                    offset = -lookVector * dist -- default behind
+                end
+
+                local pos = hrp.Position + offset
+                myRoot.CFrame = CFrame.new(pos, hrp.Position)
+            end
+        end
+    end)
+end
+
+-- FUNCTION: LISTEN TO TARGET'S DEATH
+local function listenToTargetDeath(player)
+    if deathConnection then
+        deathConnection:Disconnect()
+        deathConnection = nil
+    end
+
+    if player.Character then
+        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            deathConnection = humanoid.Died:Connect(function()
+                if autoDeathsDisableInSkill then
+                    toggled = false
+                    toggle.Text = "Toggle (OFF)"
+                    if tracking then
+                        tracking:Disconnect()
+                        tracking = nil
+                    end
+                end
+            end)
+        end
+    end
+end
+
+-- FUNCTION: RESPAWN (Reconnect tracking and death listener on respawn)
+local function hookRespawn(p)
+    if reconnect then reconnect:Disconnect() end
+
+    local hum = p.Character and p.Character:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.Died:Connect(function()
+            if autoDeathsDisableInSkill then
+                toggled = false
+                toggle.Text = "Toggle (OFF)"
+                if tracking then tracking:Disconnect() end
+            end
+        end)
+    end
+
+    reconnect = p.CharacterAdded:Connect(function()
+        repeat wait() until p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+        wait(0.2)
+        if autoOnWhenEnemyRespawn then
+            toggled = true
+            toggle.Text = "Toggle (ON)"
+            track()
+            listenToTargetDeath(p)
+        end
+    end)
+end
+
+-- REFRESH PLAYER LIST
+local function refresh()
+    for _, child in ipairs(playerScroll:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            local btn = Instance.new("TextButton", playerScroll)
+            btn.Size = UDim2.new(1, -8, 0, 35)
+            btn.Text = plr.Name
+            btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            btn.TextColor3 = Color3.new(1, 1, 1)
+            btn.Font = Enum.Font.Gotham
+            btn.TextSize = 16
+
+            local stroke = Instance.new("UIStroke", btn)
+            stroke.Thickness = 2
+            stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+            local grad = Instance.new("UIGradient", stroke)
+            grad.Color = ColorSequence.new{
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+                ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 127, 0)),
+                ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 255, 0)),
+                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 0)),
+                ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 0, 255)),
+                ColorSequenceKeypoint.new(0.83, Color3.fromRGB(75, 0, 130)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(148, 0, 211))
+            }
+
+            TweenService:Create(grad, TweenInfo.new(5, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1), {
+                Rotation = 360
+            }):Play()
+
+            btn.MouseButton1Click:Connect(function()
+                selectedPlayer = plr
+                targetLabel.Text = "Target: " .. plr.Name
+
+                listenToTargetDeath(plr)
+
+                local originalColor = btn.BackgroundColor3
+                btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                btn.TextColor3 = Color3.fromRGB(0, 0, 0)
+
+                if frame:FindFirstChild("TargetHighlight") then
+                    frame.TargetHighlight:Destroy()
+                end
+
+                if plr.Character then
+                    local highlight = Instance.new("Highlight")
+                    highlight.Name = "TargetHighlight"
+                    highlight.FillColor = Color3.fromRGB(255, 255, 255)
+                    highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+                    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    highlight.Adornee = plr.Character
+                    highlight.Parent = frame
+
+                    task.delay(3, function()
+                        if highlight and highlight.Parent then
+                            highlight:Destroy()
+                        end
+                    end)
+                end
+
+                task.delay(3, function()
+                    if btn and btn.Parent then
+                        btn.BackgroundColor3 = originalColor
+                        btn.TextColor3 = Color3.new(1, 1, 1)
+                    end
+                end)
+            end)
+        end
+    end
+end
+
+-- INITIALIZE PLAYER LIST
+refresh()
+
+-- AUTO-REFRESH WHEN PLAYERS JOIN/LEAVE
+Players.PlayerAdded:Connect(refresh)
+Players.PlayerRemoving:Connect(function(player)
+    if player == selectedPlayer then
+        if frame:FindFirstChild("TargetHighlight") then
+            frame.TargetHighlight:Destroy()
+        end
+        selectedPlayer = nil
+        targetLabel.Text = "Target: None"
+    end
+    refresh()
+end)
+
+-- TOGGLE CLICK
+toggle.MouseButton1Click:Connect(function()
+    local input = tonumber(distanceBox.Text)
+    if input and input >= 1 and input <= 10 then
+        distance = input
+    else
+        distance = 5
+    end
+
+    if toggled then  
+        toggled = false  
+        toggle.Text = "Toggle (OFF)"  
+        if tracking then tracking:Disconnect() end  
+    else  
+        if selectedPlayer then  
+            toggled = true  
+            toggle.Text = "Toggle (ON)"  
+            track()  
+            hookRespawn(selectedPlayer)  
+        else  
+            toggle.Text = "No Target!"  
+            wait(1)  
+            toggle.Text = "Toggle (OFF)"  
+        end  
+    end
+end)
